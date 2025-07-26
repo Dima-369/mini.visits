@@ -1,3 +1,9 @@
+# Fork changes
+
+- implemented `MiniVisits.list_paths_across_all_dirs` which sorts the current cwd files at top, and then all other files across all directories
+
+# Original README
+
 <div align="center"> <img src="https://github.com/echasnovski/media/blob/main/mini.nvim/logo-2/logo-visits_readme.png" alt="mini.visits"/> </div>
 
 <!-- badges: start -->
