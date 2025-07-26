@@ -661,6 +661,68 @@ MiniVisits.list_paths = function(cwd, opts)
   return vim.tbl_map(function(x) return x.path end, res_arr)
 end
 
+--- List visit paths across all directories
+---
+--- Similar to list_paths but returns paths from all directories, with current
+--- directory paths prioritized at the top, followed by paths from other directories.
+---
+--- Examples: >lua
+---
+---   -- Get paths from current cwd first, then all other directories
+---   MiniVisits.list_paths_across_all_dirs()
+---
+---   -- Get paths sorted by recency across all directories
+---   local sort_recent = MiniVisits.gen_sort.default({ recency_weight = 1 })
+---   MiniVisits.list_paths_across_all_dirs({ sort = sort_recent })
+--- <
+---@param opts table|nil Options. Possible fields:
+---   __visits_filter
+---   __visits_sort
+---
+---@return table Array of visited paths with current cwd paths first.
+MiniVisits.list_paths_across_all_dirs = function(opts)
+  opts = vim.tbl_deep_extend('force', H.get_config().list, opts or {})
+  local filter = H.validate_filter(opts.filter)
+  local sort = H.validate_sort(opts.sort)
+  
+  local current_cwd = vim.fn.getcwd()
+  
+  -- Get paths from current cwd
+  local current_cwd_paths = H.make_path_array('', current_cwd)
+  local current_filtered = vim.tbl_filter(filter, current_cwd_paths)
+  local current_sorted = sort(current_filtered)
+  
+  -- Get paths from all other directories
+  local all_paths = H.make_path_array('', '')  -- Empty cwd means all cwds
+  local all_filtered = vim.tbl_filter(filter, all_paths)
+  local all_sorted = sort(all_filtered)
+  
+  -- Create a set of current cwd paths for deduplication
+  local current_path_set = {}
+  for _, path_data in ipairs(current_sorted) do
+    current_path_set[path_data.path] = true
+  end
+  
+  -- Filter out current cwd paths from all paths
+  local other_paths = {}
+  for _, path_data in ipairs(all_sorted) do
+    if not current_path_set[path_data.path] then
+      table.insert(other_paths, path_data)
+    end
+  end
+  
+  -- Combine: current cwd paths first, then other paths
+  local result = {}
+  for _, path_data in ipairs(current_sorted) do
+    table.insert(result, path_data.path)
+  end
+  for _, path_data in ipairs(other_paths) do
+    table.insert(result, path_data.path)
+  end
+  
+  return result
+end
+
 --- List visit labels
 ---
 --- Convert visit index for certain path-cwd pair into an ordered list of labels.
